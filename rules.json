@@ -1,0 +1,62 @@
+[
+  {
+    "id": "greeting",
+    "patterns": ["^bonjour\\b","^salut\\b","bonjour","salut","coucou"],
+    "responses": ["Bonjour ! Comment puis-je t'aider aujourd'hui ?","Salut ! Que veux-tu faire ?","Coucou ! Quel est le programme pour toi ?","Bonjour ! Je suis là pour t'aider."]
+  },
+  {
+    "id": "howareyou",
+    "patterns": ["comment ça va","comment vas","ça va","ca va"],
+    "responses": ["Je vais bien, merci ! Et toi ?","Tout va bien ici — dis-moi ce dont tu as besoin.","Ça va super ! Et de ton côté ?","Je suis en forme, prêt à t'aider !"]
+  },
+  {
+    "id": "set_name_feedback",
+    "patterns": ["je m'appelle (.+)","mon nom est (.+)"],
+    "responses": ["Enchanté {name} ! Je vais retenir ton nom.", "Ravi de te rencontrer {name} ! J'ai enregistré ton nom."],
+    "meta": {"autoSetNameFromCapture": true}
+  },
+  {
+    "id": "thanks",
+    "patterns": ["merci","thanks","thx"],
+    "responses": ["Avec plaisir !","De rien !","Je t'en prie !","C'est normal !"]
+  },
+  {
+    "id": "time",
+    "patterns": ["quelle heure","il est quelle heure","heure"],
+    "responses": ["Il est {time}.", "Nous sommes le {date} et il est {time}."],
+    "meta": {"builtin": "time"}
+  },
+  {
+    "id": "personal_greet",
+    "patterns": ["bonjour","salut","hello"],
+    "responses": ["Bonjour {name} ! Tu veux tester une commande ?","Salut {name} — que souhaites-tu faire ?","Coucou {name} ! Comment ça va ?"],
+    "conditions": {"nameExists": true}
+  },
+  {
+    "id": "demander_aide",
+    "patterns": ["aide","help","quoi faire","tu fais quoi","quelles commandes"],
+    "responses": ["Je suis un assistant professionnel. Je peux : répondre à tes questions, te donner l'heure, retenir ton nom, gérer des rappels simples. Essaie 'quelle heure' ou 'je m'appelle X' !","Commandes disponibles : 'aide', 'quelle heure', 'je m'appelle NOM', 'crée un rappel'. Dis-moi ce que tu veux faire !"]
+  },
+  {
+    "id": "remerciements",
+    "patterns": ["c'est gentil","super","bien joué","excellent"],
+    "responses": ["Merci ! Je fais de mon mieux.","Content que ça te plaise !","De rien, c'est un plaisir."]
+  },
+  {
+    "id": "oui_avec_contexte",
+    "patterns": ["oui","yes","ouais"],
+    "responses": ["Super ! Dis-moi plus.","D'accord, quoi d'autre ?"],
+    "conditions": {"attente": true}
+  },
+  {
+    "id": "creer_rappel",
+    "patterns": ["rappelle-moi","crée un rappel","rappel"],
+    "responses": ["Quel est le rappel et à quelle heure ?","Dis-moi ce que je dois te rappeler et quand."],
+    "meta": {"setContext": {"attente": "rappel"}}
+  },
+  {
+    "id": "fallback",
+    "patterns": [],
+    "responses": ["Désolé, je n'ai pas compris. Tu peux utiliser 'aide' pour voir les commandes.","Je ne connais pas encore la réponse à ça, essaie 'aide'."]
+  }
+]

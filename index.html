@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Chatbot Offline — Assistant & Moteur de règles (Pro)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header glass">
+      <div class="title">
+        <h1>Chatbot Offline — Assistant Pro</h1>
+        <p class="subtitle">Moteur de règles • contexte • stats • mini-assistant</p>
+      </div>
+      <div class="header-actions">
+        <button id="toggle-theme" title="Basculer thème">🌗</button>
+        <button id="toggle-assistant" title="Activer/Désactiver mini-assistant">🤖 Assistant Off</button>
+        <button id="export-rules" title="Exporter règles">⬇️</button>
+        <button id="import-rules" title="Importer règles">⬆️</button>
+      </div>
+    </header>
+
+    <main class="chat-area glass">
+      <div id="chat" class="chat-window" aria-live="polite" ></div>
+      <div class="composer">
+        <input id="input" placeholder="Écris un message ou commande (ex: je m'appelle Youssef)" autocomplete="off"/>
+        <button id="send">Envoyer</button>
+      </div>
+    </main>
+
+    <aside class="panel glass">
+      <section class="panel-section">
+        <h3>Éditeur & Règles</h3>
+        <div class="rules-controls">
+          <button id="add-rule-btn">➕ Ajouter</button>
+          <button id="reset-rules">♻️ Par défaut</button>
+          <button id="clear-storage">🗑️ Réinitialiser</button>
+        </div>
+        <div id="rules-list" class="rules-list"></div>
+      </section>
+
+      <section class="panel-section">
+        <h3>Contexte</h3>
+        <div id="context-view" class="context-view"></div>
+        <div class="context-actions">
+          <button id="clear-context">Effacer contexte</button>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <h3>Statistiques</h3>
+        <div id="stats-view" class="stats-view"></div>
+        <div class="stats-actions">
+          <button id="reset-stats">Réinitialiser stats</button>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <h3>Aide rapide</h3>
+        <ul class="help-list">
+          <li><strong>Définir nom :</strong> "je m'appelle Youssef" ou "mon nom est Youssef"</li>
+          <li><strong>Heure :</strong> "quelle heure" ou "il est quelle heure"</li>
+          <li><strong>Effacer contexte :</strong> "efface le contexte" ou bouton</li>
+          <li><strong>Importer/Exporter :</strong> pour partager règles</li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+
+  <!-- Modal: Formulaire d'édition / création -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-content">
+      <h2 id="modalTitle">Nouvelle règle</h2>
+
+      <form id="rule-form">
+        <label>Identifiant (id)
+          <input id="field-id" name="id" placeholder="ex: greeting" required />
+        </label>
+
+        <label>Patterns (une par ligne)
+          <textarea id="field-patterns" name="patterns" placeholder="bonjour\n^salut\\b\nmerci" spellcheck="false"></textarea>
+        </label>
+
+        <label>Responses (une par ligne) — tu peux utiliser {name} pour insérer le nom
+          <textarea id="field-responses" name="responses" placeholder="Bonjour {name} !\nSalut 🙂" spellcheck="false" required></textarea>
+        </label>
+
+        <label>Conditions (optionnel, syntaxe simple)
+          <textarea id="field-conditions" name="conditions" placeholder='ex: nameExists=true' spellcheck="false"></textarea>
+          <small>Exemples : <code>nameExists=true</code> (nécessite context.name)</small>
+        </label>
+
+        <div class="form-actions">
+          <button type="submit" id="save-rule">Enregistrer</button>
+          <button type="button" id="cancel-rule">Annuler</button>
+        </div>
+
+        <p id="form-message" class="form-message"></p>
+      </form>
+
+      <p class="modal-note">Tips : Patterns = regex ou simple mot. Conditions simples disponibles : <code>nameExists=true</code>.</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
