@@ -1,11 +1,57 @@
-/* app.js — Assistant Pro
-   - stats per rule
-   - context (name)
-   - conditional responses (simple)
-   - mini-assistant buil-ins (time, set name, clear)
-   - no "hbiba" anywhere
-*/
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
+import { GROQ_API_KEY } from "./config.js";
+import { saveMessage, loadMessages } from "./database.js";
+// app.js
 
+// app.js
+
+async function askAI(message) {
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        // CORRECTION FINALE : Modèle de secours Llama 3 70B
+        model: "llama3-70b-8192", 
+        messages: [
+          { role: "user", content: message }
+        ]
+      })
+    });
+
+    // Gestion d'erreur (HTTP 4xx/5xx)
+    if (!res.ok) {
+        let errorData;
+        try {
+            errorData = await res.json();
+        } catch (e) {
+            errorData = { message: `Erreur HTTP ${res.status}. Le corps de la requête est incorrect.` };
+        }
+        console.error("Groq API Error:", errorData);
+        return `Erreur de l'API Groq (Code ${res.status}): ${errorData.message || JSON.stringify(errorData)}`;
+    }
+
+    const data = await res.json();
+    
+    // Vérification de la réponse Groq
+    if (!data.choices || data.choices.length === 0 || !data.choices[0].message) {
+        console.error("Groq response missing choices or message:", data);
+        return "Erreur IA: La réponse Groq est incomplète ou vide.";
+    }
+
+    return data.choices[0].message.content;
+  } catch(err) {
+    console.error(err);
+    // Fallback pour les erreurs de réseau ou de code
+    return "Une erreur est survenue avec l’IA (Erreur de réseau ou de code).";
+  }
+}
+
+// ... le reste du fichier app.js
+// ... le reste du fichier app.js
 const DEFAULT_RULES = [
   {"id":"greeting","patterns":["^bonjour\\b","^salut\\b","bonjour","salut","coucou"],"responses":["Bonjour ! Comment puis-je t'aider aujourd'hui ?","Salut ! Que veux-tu faire ?","Coucou ! Quel est le programme pour toi ?","Bonjour ! Je suis là pour t'aider."]},
   {"id":"howareyou","patterns":["comment ça va","comment vas","ça va","ca va"],"responses":["Je vais bien, merci ! Et toi ?","Tout va bien ici — dis-moi ce dont tu as besoin.","Ça va super ! Et de ton côté ?","Je suis en forme, prêt à t'aider !"]},
@@ -67,6 +113,13 @@ async function init(){
   // load context and stats first
   loadContext();
   loadStats();
+  // Load online history
+  loadMessages().then(msgs => {
+  msgs.forEach(m => {
+    if (m.role === "user") appendUserMessage(m.content);
+    else appendBotMessage(m.content);
+    });
+  });
 
   // load rules localStorage -> rules.json -> default
   const stored = localStorage.getItem(STORAGE_KEYS.RULES);
@@ -147,9 +200,26 @@ function onSend(){
   if (assistantMode){
     const handled = handleAssistantBuiltins(text);
     if (handled) return;
+    // FIX: If built-ins were not handled, use the rules engine (processInput)
+    processInput(text);
+    return;
   }
-  processInput(text);
+  processAI(text);
 }
+async function processAI(text) {
+  const typingEl = appendBotTyping();
+
+  // Save user message online
+  saveMessage("user", text);
+
+  const reply = await askAI(text);
+
+  typingEl.remove();
+  appendBotMessage(reply);
+
+  saveMessage("bot", reply);
+}
+
 
 // Input processing & matching
 function processInput(text){
@@ -465,7 +535,15 @@ function onClearContext(){ if(!confirm("Effacer le contexte ?")) return; clearCo
 
 // Theme
 function toggleTheme(){ const cur = localStorage.getItem(STORAGE_KEYS.THEME) || "light"; const next = cur === "light" ? "dark" : "light"; localStorage.setItem(STORAGE_KEYS.THEME, next); applyTheme(); }
-function applyTheme(){ const theme = localStorage.getItem(STORAGE_KEYS.THEME) || "light"; if (theme === "dark"){ document.documentElement.style.setProperty("--bg", "linear-gradient(180deg,#041025,#071125)"); document.documentElement.style.setProperty("--card", "rgba(8,12,20,0.65)"); document.documentElement.style.setProperty("color-scheme","dark"); document.body.style.color = "#dfefff"; } else { document.documentElement.style.removeProperty("--bg"); document.documentElement.style.removeProperty("--card"); document.body.style.color = ""; } }
+function applyTheme() {
+  const theme = localStorage.getItem(STORAGE_KEYS.THEME) || "light";
+
+  if (theme === "dark") {
+    document.body.classList.add("dark-mode");
+  } else {
+    document.body.classList.remove("dark-mode");
+  }
+}
 
 // Assistant builtins
 function toggleAssistantMode(){
@@ -540,3 +618,10 @@ renderContext();
 try { /* nothing extra */ } catch(e){ RULES = DEFAULT_RULES.slice(); persistRules(); renderRulesList(); }
 
 // End of file
+document.getElementById("assist-btn").addEventListener("click", () => {
+  const quick = "Donne-moi un conseil utile.";
+  appendUserMessage(quick);
+  processAI(quick);
+});
+
+
