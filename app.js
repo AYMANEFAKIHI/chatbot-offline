@@ -1,9 +1,6 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 import { GROQ_API_KEY } from "./config.js";
 import { saveMessage, loadMessages } from "./database.js";
-// app.js
-
-// app.js
 
 async function askAI(message) {
   try {
@@ -14,7 +11,6 @@ async function askAI(message) {
         "Authorization": `Bearer ${GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        // CORRECTION FINALE : Modèle de secours Llama 3 70B
         model: "llama3-70b-8192", 
         messages: [
           { role: "user", content: message }
@@ -22,7 +18,6 @@ async function askAI(message) {
       })
     });
 
-    // Gestion d'erreur (HTTP 4xx/5xx)
     if (!res.ok) {
         let errorData;
         try {
@@ -36,7 +31,6 @@ async function askAI(message) {
 
     const data = await res.json();
     
-    // Vérification de la réponse Groq
     if (!data.choices || data.choices.length === 0 || !data.choices[0].message) {
         console.error("Groq response missing choices or message:", data);
         return "Erreur IA: La réponse Groq est incomplète ou vide.";
@@ -45,13 +39,11 @@ async function askAI(message) {
     return data.choices[0].message.content;
   } catch(err) {
     console.error(err);
-    // Fallback pour les erreurs de réseau ou de code
     return "Une erreur est survenue avec l’IA (Erreur de réseau ou de code).";
   }
 }
 
-// ... le reste du fichier app.js
-// ... le reste du fichier app.js
+
 const DEFAULT_RULES = [
   {"id":"greeting","patterns":["^bonjour\\b","^salut\\b","bonjour","salut","coucou"],"responses":["Bonjour ! Comment puis-je t'aider aujourd'hui ?","Salut ! Que veux-tu faire ?","Coucou ! Quel est le programme pour toi ?","Bonjour ! Je suis là pour t'aider."]},
   {"id":"howareyou","patterns":["comment ça va","comment vas","ça va","ca va"],"responses":["Je vais bien, merci ! Et toi ?","Tout va bien ici — dis-moi ce dont tu as besoin.","Ça va super ! Et de ton côté ?","Je suis en forme, prêt à t'aider !"]},
@@ -68,11 +60,10 @@ const DEFAULT_RULES = [
 
 const STORAGE_KEYS = {HISTORY: "chatbot_history_v3", RULES: "chatbot_rules_v3", THEME: "chatbot_theme_v3", STATS: "chatbot_stats_v3", CONTEXT: "chatbot_context_v3"};
 let RULES = [];
-let STATS = {}; // { ruleId: count }
-let CONTEXT = {}; // e.g., { name: "Youssef" }
+let STATS = {}; 
+let CONTEXT = {}; 
 let assistantMode = false;
 
-// DOM
 const chatEl = document.getElementById("chat");
 const inputEl = document.getElementById("input");
 const sendBtn = document.getElementById("send");
@@ -102,18 +93,14 @@ const historyList = document.getElementById("history-list");
 
 let editingRuleId = null;
 
-// Utility
 const $ = s => document.querySelector(s);
 function escapeHtml(str){ return String(str).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll("\n","<br>"); }
 
-// Init
 init();
 
 async function init(){
-  // load context and stats first
   loadContext();
   loadStats();
-  // Load online history
   loadMessages().then(msgs => {
   msgs.forEach(m => {
     if (m.role === "user") appendUserMessage(m.content);
@@ -121,7 +108,6 @@ async function init(){
     });
   });
 
-  // load rules localStorage -> rules.json -> default
   const stored = localStorage.getItem(STORAGE_KEYS.RULES);
   if (stored){
     try { RULES = JSON.parse(stored); }
@@ -160,7 +146,6 @@ function attachEvents(){
   clearContextBtn && clearContextBtn.addEventListener("click", onClearContext);
 }
 
-// Chat UI
 function renderChatSystemMessage(text){
   appendBotMessage(text);
 }
@@ -196,11 +181,9 @@ function onSend(){
   appendUserMessage(text);
   saveToHistory({from:"user", text, date: new Date().toISOString()});
   inputEl.value = "";
-  // process: check assistant builtins first if assistantMode true
   if (assistantMode){
     const handled = handleAssistantBuiltins(text);
     if (handled) return;
-    // FIX: If built-ins were not handled, use the rules engine (processInput)
     processInput(text);
     return;
   }
@@ -209,7 +192,6 @@ function onSend(){
 async function processAI(text) {
   const typingEl = appendBotTyping();
 
-  // Save user message online
   saveMessage("user", text);
 
   const reply = await askAI(text);
@@ -221,15 +203,12 @@ async function processAI(text) {
 }
 
 
-// Input processing & matching
 function processInput(text){
   const typingEl = appendBotTyping();
   setTimeout(() => {
     typingEl.remove();
     const result = computeResponse(text);
-    // increment stats if rule used
     if (result.ruleId) incrementStat(result.ruleId);
-    // apply context placeholders
     const final = applyPlaceholders(result.response);
     typeBotResponse(final, 18, true);
     saveToHistory({from:"bot", text:final, date: new Date().toISOString()});
@@ -238,64 +217,53 @@ function processInput(text){
 }
 
 function computeResponse(text){
-  // first try pattern with captures / regex etc.
   const lower = text.toLowerCase();
-  // check auto-set name pattern quickly
-  for (const rule of RULES){
+  for (const rule of RULES) {
     if (!rule.patterns || rule.patterns.length === 0) continue;
-    for (const p of rule.patterns){
+    for (const p of rule.patterns) {
       if (!p) continue;
       try {
         const re = new RegExp(p, "i");
         const m = re.exec(text);
-        if (m){
-          // conditions?
+        if (m) {
           if (!checkConditions(rule.conditions)) continue;
-          // if meta autoSetNameFromCapture -> take capture 1 as name
-          if (rule.meta && rule.meta.autoSetNameFromCapture && m[1]){
-            setContext({name: capitalize(m[1].trim())});
+          if (rule.meta && rule.meta.autoSetNameFromCapture && m[1]) {
+            setContext({ name: capitalize(m[1].trim()) });
           }
-          // if meta setContext -> set context
-          if (rule.meta && rule.meta.setContext){
+          if (rule.meta && rule.meta.setContext) {
             setContext(rule.meta.setContext);
           }
           const resp = pickResponse(rule);
-          return {response: resp, ruleId: rule.id};
+          return { response: resp, ruleId: rule.id };
         }
-      } catch(e){
-        if (lower.includes(p.toLowerCase())){
+      } catch (e) {
+        if (lower.includes(p.toLowerCase())) {
           if (!checkConditions(rule.conditions)) continue;
           const resp = pickResponse(rule);
-          return {response: resp, ruleId: rule.id};
+          return { response: resp, ruleId: rule.id };
         }
       }
     }
   }
 
-  // If none matched, fallback
-  const fallback = RULES.find(r => r.id === "fallback") || (RULES.length? RULES[RULES.length-1] : {responses:["Je n'ai pas compris."]});
-  return {response: pickResponse(fallback), ruleId: fallback.id || null};
+  const fallback = RULES.find(r => r.id === "fallback") || (RULES.length ? RULES[RULES.length - 1] : { responses: ["Je n'ai pas compris."] });
+  return { response: pickResponse(fallback), ruleId: fallback.id || null };
 }
 
 function pickResponse(rule){
-  // some rules have meta builtin e.g., time
   if (rule.meta && rule.meta.builtin === "time"){
-    // replace placeholders later
     const choice = rule.responses[Math.floor(Math.random()*rule.responses.length)];
     return choice;
   }
-  // random response
   const arr = rule.responses && rule.responses.length ? rule.responses : ["Je n'ai pas de réponse pour ça."];
   return arr[Math.floor(Math.random()*arr.length)];
 }
 
 function applyPlaceholders(text){
   let out = text;
-  // {name}
   if (out.includes("{name}")){
     out = out.replaceAll("{name}", CONTEXT.name || "ami");
   }
-  // {time} {date}
   if (out.includes("{time}") || out.includes("{date}")){
     const d = new Date();
     const hh = d.getHours().toString().padStart(2,"0");
@@ -307,22 +275,17 @@ function applyPlaceholders(text){
   return out;
 }
 
-// Conditions simple evaluator
 function checkConditions(conds){
   if (!conds) return true;
-  // e.g., { nameExists: true }
   if (conds.nameExists !== undefined){
     return Boolean(CONTEXT.name) === Boolean(conds.nameExists);
   }
-  // e.g., { attente: true }
   if (conds.attente !== undefined){
     return Boolean(CONTEXT.attente) === Boolean(conds.attente);
   }
-  // can extend
   return true;
 }
 
-// Stats
 function loadStats(){
   try {
     STATS = JSON.parse(localStorage.getItem(STORAGE_KEYS.STATS)) || {};
@@ -339,7 +302,6 @@ function renderStats(){
     statsView.innerHTML = `<div class="stats-item">Aucune statistique pour l'instant.</div>`;
     return;
   }
-  // show rules ordered by count desc
   const sorted = keys.sort((a,b)=> STATS[b]-STATS[a]);
   for (const id of sorted){
     const div = document.createElement("div");
@@ -349,7 +311,6 @@ function renderStats(){
   }
 }
 
-// Context
 function loadContext(){
   try { CONTEXT = JSON.parse(localStorage.getItem(STORAGE_KEYS.CONTEXT)) || {}; } catch(e){ CONTEXT = {}; }
 }
@@ -378,7 +339,6 @@ function renderContext(){
   }
 }
 
-// History
 function saveToHistory(item){
   const hist = loadHistoryArray();
   hist.push(item);
@@ -417,7 +377,6 @@ function renderHistory(){
   }
 }
 
-// Type animation + speak
 function typeBotResponse(text, speed=25, speak=false){
   const el = document.createElement("div");
   el.className = "message bot";
@@ -441,7 +400,6 @@ function typeBotResponse(text, speed=25, speak=false){
   }, speed);
 }
 
-// Rules editor (graphical)
 function renderRulesList(){
   rulesList.innerHTML = "";
   if (!RULES || RULES.length === 0){
@@ -478,7 +436,6 @@ function openModalForEdit(id){
 function closeModal(){ modal.classList.add("hidden"); editingRuleId=null; }
 function condToString(conds){
   if (!conds) return "";
-  // only nameExists supported
   const parts=[];
   if (conds.nameExists!==undefined) parts.push(`nameExists=${conds.nameExists}`);
   return parts.join("\n");
@@ -521,19 +478,16 @@ function onSaveRule(e){
 
 function persistRules(){ localStorage.setItem(STORAGE_KEYS.RULES, JSON.stringify(RULES)); }
 
-// Import/Export
 function exportRules(){ const blob = new Blob([JSON.stringify(RULES, null,2)], {type:"application/json"}); const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="rules_export.json"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
 function importRules(){ const input=document.createElement("input"); input.type="file"; input.accept=".json,application/json"; input.onchange = e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload = ev=>{ try{ const parsed=JSON.parse(ev.target.result); if(!Array.isArray(parsed)) throw new Error("Le fichier doit contenir un tableau"); // basic validate
     for(const it of parsed){ if(typeof it.id!=="string" || !Array.isArray(it.responses)) throw new Error("Format incorrect pour une règle"); }
     RULES = parsed; persistRules(); renderRulesList(); alert("Import réussi."); } catch(err){ alert("Erreur import: "+err.message); } }; r.readAsText(f); }; input.click(); }
 
-// Reset & storage
 function onResetRules(){ if(!confirm("Remettre les règles par défaut ?")) return; RULES = DEFAULT_RULES.slice(); persistRules(); renderRulesList(); alert("Règles remises par défaut."); }
 function onClearStorage(){ if(!confirm("Tout réinitialiser (historique, règles, contexte, stats) ?")) return; localStorage.removeItem(STORAGE_KEYS.HISTORY); localStorage.removeItem(STORAGE_KEYS.RULES); localStorage.removeItem(STORAGE_KEYS.STATS); localStorage.removeItem(STORAGE_KEYS.CONTEXT); location.reload(); }
 function onResetStats(){ if(!confirm("Réinitialiser toutes les statistiques ?")) return; STATS = {}; localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(STATS)); renderStats(); }
 function onClearContext(){ if(!confirm("Effacer le contexte ?")) return; clearContext(); renderContext(); }
 
-// Theme
 function toggleTheme(){ const cur = localStorage.getItem(STORAGE_KEYS.THEME) || "light"; const next = cur === "light" ? "dark" : "light"; localStorage.setItem(STORAGE_KEYS.THEME, next); applyTheme(); }
 function applyTheme() {
   const theme = localStorage.getItem(STORAGE_KEYS.THEME) || "light";
@@ -545,7 +499,6 @@ function applyTheme() {
   }
 }
 
-// Assistant builtins
 function toggleAssistantMode(){
   assistantMode = !assistantMode;
   toggleAssistantBtn.textContent = assistantMode ? "🤖 Assistant On" : "🤖 Assistant Off";
@@ -553,7 +506,6 @@ function toggleAssistantMode(){
 }
 function handleAssistantBuiltins(text){
   const lower = text.toLowerCase().trim();
-  // set name commands (also matched by rules but we want immediate set)
   const nameRegex1 = /je m'?appelle\s+(.+)/i;
   const nameRegex2 = /mon nom est\s+(.+)/i;
   let m = nameRegex1.exec(text) || nameRegex2.exec(text);
@@ -567,21 +519,18 @@ function handleAssistantBuiltins(text){
     renderStats();
     return true;
   }
-  // help
   if (["aide","help"].includes(lower)) {
     const help = "Commandes disponibles: 'je m'appelle NOM', 'quelle heure', 'efface le contexte'. Active/Désactive Assistant pour autoriser commandes rapides.";
     appendBotMessage(help);
     saveToHistory({from:"bot", text:help, date:new Date().toISOString()});
     return true;
   }
-  // clear context
   if (lower.includes("efface le contexte") || lower.includes("clear context") || lower.includes("efface le context")) {
     clearContext();
     appendBotMessage("Contexte effacé.");
     saveToHistory({from:"bot", text:"Contexte effacé.", date:new Date().toISOString()});
     return true;
   }
-  // time
   if (lower.includes("quelle heure") || lower.includes("il est quelle heure") || lower === "heure") {
     const d=new Date(); const hh=d.getHours().toString().padStart(2,"0"); const mm=d.getMinutes().toString().padStart(2,"0"); const now=`${hh}:${mm}`;
     appendBotMessage(`Il est ${now}.`);
@@ -593,10 +542,8 @@ function handleAssistantBuiltins(text){
   return false;
 }
 
-// Helpers
 function capitalize(s){ return s.split(" ").map(w=> w.charAt(0).toUpperCase()+w.slice(1)).join(" "); }
 
-// initial persist/load
 (function ensureRulesLoaded(){
   const stored = localStorage.getItem(STORAGE_KEYS.RULES);
   if (stored) {
@@ -606,22 +553,16 @@ function capitalize(s){ return s.split(" ").map(w=> w.charAt(0).toUpperCase()+w.
     RULES = DEFAULT_RULES.slice();
     localStorage.setItem(STORAGE_KEYS.RULES, JSON.stringify(RULES));
   }
-  // stats and context loaded earlier
 })();
 
-// render on start
 renderRulesList();
 renderStats();
 renderContext();
 
-// small safeguard
 try { /* nothing extra */ } catch(e){ RULES = DEFAULT_RULES.slice(); persistRules(); renderRulesList(); }
 
-// End of file
 document.getElementById("assist-btn").addEventListener("click", () => {
   const quick = "Donne-moi un conseil utile.";
   appendUserMessage(quick);
   processAI(quick);
 });
-
-

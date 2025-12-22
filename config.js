@@ -1,6 +1,3 @@
-// config.js  (module version – SAFE and works with imports)
-
-// The API key has been updated here. This should resolve the 'Une erreur est survenue avec l’IA.' issue.
 export const GROQ_API_KEY = "";
 
 export const SUPABASE_URL = "https://ymbvaeszbsflffzaxrvf.supabase.co";
